@@ -1,160 +1,146 @@
-# 🤖 Trading IA - Système de Trading Autonome Intelligent
+# Trading IA API
 
-Système de trading crypto autonome utilisant l'intelligence artificielle (Google Gemini) pour analyser les marchés, interpréter les actualités, et exécuter des trades de manière autonome.
+Backend FastAPI pour un moteur de trading crypto assiste par IA.
 
-## 🏗️ Architecture
+Ce service expose:
+- une API REST pour le dashboard Next.js
+- le controle du moteur (start/stop)
+- la lecture des metriques, trades, signaux, analyses et news
+- la connexion exchange par utilisateur avec validation reelle via CCXT
 
-```
-trading_ia/
-├── config/
-│   └── config.yaml           # Configuration principale
-├── src/
-│   ├── core/
-│   │   ├── engine.py          # 🔥 Moteur de trading principal
-│   │   ├── portfolio.py       # Gestion du portfolio
-│   │   └── risk_manager.py    # 🛡️ Gestionnaire de risque
-│   ├── exchange/
-│   │   ├── base.py            # Interface abstraite
-│   │   └── ccxt_exchange.py   # Connexion universelle CCXT
-│   ├── analysis/
-│   │   ├── technical.py       # 📊 Analyse technique (11+ indicateurs)
-│   │   ├── ai_analyst.py      # 🧠 Analyse IA Gemini
-│   │   └── sentiment.py       # 📰 Analyse du sentiment/news
-│   ├── strategy/
-│   │   └── ai_strategy.py     # 🎯 Stratégie combinée TA+IA+Sentiment
-│   └── utils/
-│       ├── config.py          # Configuration centralisée
-│       ├── database.py        # SQLite async
-│       └── logger.py          # Logging avancé
-├── .env.example               # Template des variables d'environnement
-├── requirements.txt           # Dépendances Python
-└── run.py                     # Point d'entrée
-```
+## Stack
 
-## 🚀 Installation
-
-### 1. Prérequis
 - Python 3.11+
-- Un compte sur un exchange crypto (Binance recommandé)
-- Une clé API Google Gemini
+- FastAPI + Uvicorn
+- asyncpg (PostgreSQL / Neon)
+- CCXT (Binance, Kraken, Bybit, OKX, ...)
+- Google Gemini (google-genai SDK)
 
-### 2. Installation des dépendances
+## Structure
+
+```text
+trading_ia/
+|- config/
+|  |- config.yaml
+|- src/
+|  |- api/main.py
+|  |- core/
+|  |- exchange/
+|  |- analysis/
+|  |- strategy/
+|  |- utils/{config,database,logger}.py
+|- run.py
+|- run_api.py
+|- seed_demo.py
+|- requirements.txt
+|- .env.example
+```
+
+## Installation locale
 
 ```bash
 cd trading_ia
 python -m venv venv
-source venv/bin/activate   # Linux/Mac
-# venv\Scripts\activate    # Windows
+source venv/bin/activate
 pip install -r requirements.txt
-```
-
-### 3. Configuration
-
-```bash
-# Copier le template
 cp .env.example .env
-
-# Éditer .env avec vos clés API
-nano .env
 ```
 
-**Variables essentielles:**
-- `GEMINI_API_KEY` - Clé API Google Gemini (obligatoire pour l'IA)
-- `BINANCE_API_KEY` + `BINANCE_SECRET_KEY` - Clés API Binance
-- `TRADING_MODE` - `PAPER` (simulation) ou `LIVE` (réel)
+Remplir ensuite `.env` au minimum avec:
+- `GEMINI_API_KEY`
+- `DATABASE_URL`
+- `API_SECRET_KEY`
 
-### 4. Personnaliser la configuration
+## Lancer le backend API
 
-Éditez `config/config.yaml` pour:
-- La watchlist de symboles
-- Les timeframes d'analyse
-- Les paramètres de risque
-- Les seuils de trading
+Option simple:
 
-## 📖 Utilisation
-
-### Mode Paper Trading (simulation)
 ```bash
-python run.py --mode paper
+cd trading_ia
+source venv/bin/activate
+python run_api.py
 ```
 
-### Mode Live (ATTENTION: argent réel!)
+Option dev (reload):
+
 ```bash
-python run.py --mode live
+cd trading_ia
+source venv/bin/activate
+python -m uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-### Avec dashboard web
-```bash
-python run.py --dashboard
-```
+API docs Swagger:
+- `http://localhost:8000/docs`
 
-### Choisir l'exchange
-```bash
-python run.py --exchange binance
-python run.py --exchange kraken
-```
+## Endpoints principaux
 
-## 🧠 Comment ça fonctionne
+Health:
+- `GET /api/health`
 
-### Cycle de Trading (toutes les 60s par défaut)
+Dashboard:
+- `GET /api/dashboard`
+- `GET /api/portfolio`
+- `GET /api/portfolio/history?days=30`
 
-1. **Collecte des données** - Prix, OHLCV, volume via CCXT
-2. **Analyse technique** - 11+ indicateurs (RSI, MACD, BB, EMA, Ichimoku, etc.)
-3. **Analyse des news** - Flux RSS crypto (CoinTelegraph, CoinDesk, Decrypt)
-4. **Analyse IA Gemini** - L'IA interprète toutes les données et donne une recommandation
-5. **Décision combinée** - Score pondéré: IA (45%) + Technique (35%) + Sentiment (20%)
-6. **Validation du risque** - Stop loss, take profit, taille de position, R/R ratio
-7. **Exécution** - Achat/vente automatique si toutes les conditions sont remplies
+Trading data:
+- `GET /api/trades?symbol=BTC/USDT&limit=50`
+- `GET /api/trades/stats`
+- `GET /api/signals?symbol=BTC/USDT&limit=20`
+- `GET /api/analyses?symbol=BTC/USDT&limit=10`
+- `GET /api/news?limit=30`
 
-### Indicateurs Techniques
-| Indicateur | Rôle |
-|-----------|------|
-| RSI | Zones de surachat/survente |
-| MACD | Momentum et croisements |
-| Bollinger Bands | Volatilité et extremes |
-| EMA (9/21/50/200) | Tendance court/moyen/long terme |
-| SMA (50/200) | Golden/Death Cross |
-| Stochastic | Momentum oscillateur |
-| ADX | Force de la tendance |
-| ATR | Volatilité (sizing) |
-| OBV | Volume et accumulation |
-| VWAP | Prix moyen pondéré par volume |
-| Ichimoku | Analyse multi-dimensionnelle |
+Engine:
+- `GET /api/engine/status`
+- `POST /api/engine/control`
+	- body: `{ "action": "start", "mode": "PAPER", "exchange": "binance" }`
+	- body: `{ "action": "stop" }`
 
-### Gestion du Risque
-- **Max risque par trade**: 2% du portfolio
-- **Max taille position**: 10% du portfolio
-- **Stop Loss automatique**: 3%
-- **Take Profit**: 6%
-- **Trailing Stop**: 2%
-- **Perte max journalière**: 5%
-- **Ratio R/R minimum**: 2:1
-- **Cooldown après perte**: 30 minutes
-- **Max positions simultanées**: 5
+Config:
+- `GET /api/config`
 
-## 🔒 Sécurité
+Exchange keys (par utilisateur):
+- `POST /api/exchange/keys`
+	- body: `{ "email": "user@mail.com", "exchange": "binance", "api_key": "...", "api_secret": "..." }`
+	- comportement: teste la connexion reelle via `fetch_balance` CCXT, puis sauvegarde en base
+- `GET /api/exchange/keys?email=user@mail.com`
+	- retourne les cles masquees
+- `DELETE /api/exchange/keys`
+	- body: `{ "email": "user@mail.com", "exchange": "binance" }`
 
-- Les clés API sont stockées dans `.env` (jamais commitées)
-- Mode sandbox/paper par défaut
-- Le mode LIVE requiert une confirmation de 10 secondes
-- Le risk manager peut bloquer tout trade jugé trop risqué
-- Toutes les décisions sont loguées en base de données
+## Base de donnees
 
-## 📊 Exchanges Supportés (via CCXT)
+Le projet est configure pour PostgreSQL (Neon recommande en cloud).
 
-- Binance ✅
-- Kraken ✅
-- Coinbase ✅
-- Et 100+ autres exchanges crypto
+Tables principales:
+- `trades`
+- `signals`
+- `portfolio_snapshots`
+- `ai_analyses`
+- `news_items`
+- `engine_status`
+- `user_api_keys`
 
-## ⚠️ Avertissements
+## Donnees de demo
 
-- **Le trading de cryptomonnaies comporte des risques significatifs**
-- Commencez TOUJOURS en mode Paper pour tester
-- Ne tradez jamais avec de l'argent que vous ne pouvez pas vous permettre de perdre
-- Les performances passées ne garantissent pas les résultats futurs
-- L'IA peut faire des erreurs - surveillez régulièrement le système
+Tu peux injecter des donnees pour remplir le dashboard avec un script de seed personnalise (exemple utilise pendant le dev), puis verifier les endpoints `/api/dashboard`, `/api/trades`, `/api/signals`.
 
-## 📝 License
+## Deploiement
 
-Usage personnel uniquement. Pas de conseil financier.
+Ce backend est pret pour Railway (Dockerfile + railway.toml presents).
+
+Variables importantes en production:
+- `DATABASE_URL`
+- `GEMINI_API_KEY`
+- `API_SECRET_KEY`
+- `CORS_ORIGINS`
+
+## Securite
+
+- Ne jamais commiter `.env`
+- Utiliser des permissions minimales sur les cles exchange (read + spot trade uniquement)
+- Interdire withdraw
+- Ajouter whitelist IP cote exchange
+
+## Avertissement
+
+Le trading crypto comporte un risque eleve. Ce projet est un moteur technique, pas un conseil financier.
