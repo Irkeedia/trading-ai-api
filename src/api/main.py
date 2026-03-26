@@ -28,7 +28,12 @@ async def lifespan(app: FastAPI):
     global config, db
     config = AppConfig()
     db = Database(config.env.database_url)
-    await db.initialize()
+    try:
+        await db.initialize()
+    except Exception as e:
+        import logging
+        logging.warning(f"DB connection failed at startup: {e}")
+        db = None
     yield
     if db:
         await db.close()

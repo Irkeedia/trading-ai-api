@@ -14,8 +14,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Code source
 COPY . .
 
-# Port API
+# Port API (Railway injecte $PORT)
 EXPOSE 8000
 
 # Démarrage: API FastAPI via uvicorn
-CMD ["python", "-m", "uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD python -m uvicorn src.api.main:app --host 0.0.0.0 --port ${PORT:-8000}
