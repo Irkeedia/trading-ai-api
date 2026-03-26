@@ -1,0 +1,95 @@
+# ============================================================
+# Trading IA - Configuration principale
+# ============================================================
+
+trading:
+  mode: "PAPER"                    # PAPER (simulation) ou LIVE (réel)
+  base_currency: "USDT"            # Devise de référence
+  max_open_positions: 5            # Positions simultanées max
+  check_interval_seconds: 60       # Intervalle de vérification du marché
+  
+exchanges:
+  primary: "binance"               # Exchange principal
+  available:
+    - name: "binance"
+      enabled: true
+      sandbox: true                # Mode sandbox pour les tests
+    - name: "kraken"
+      enabled: false
+      sandbox: true
+    - name: "coinbase"
+      enabled: false
+      sandbox: true
+
+symbols:
+  watchlist:
+    - "BTC/USDT"
+    - "ETH/USDT"
+    - "SOL/USDT"
+    - "BNB/USDT"
+    - "XRP/USDT"
+    - "ADA/USDT"
+    - "AVAX/USDT"
+    - "DOT/USDT"
+    - "LINK/USDT"
+    - "MATIC/USDT"
+
+analysis:
+  technical:
+    timeframes:
+      - "5m"
+      - "15m"
+      - "1h"
+      - "4h"
+      - "1d"
+    indicators:
+      - "RSI"
+      - "MACD"
+      - "BB"           # Bollinger Bands
+      - "EMA"
+      - "SMA"
+      - "ATR"
+      - "VWAP"
+      - "STOCH"        # Stochastic
+      - "ADX"
+      - "OBV"          # On-Balance Volume
+      - "ICHIMOKU"
+      
+  ai:
+    provider: "gemini"
+    model: "gemini-2.0-flash"
+    analysis_interval_minutes: 15
+    max_tokens: 4096
+    temperature: 0.3              # Basse pour plus de précision
+    
+  sentiment:
+    enabled: true
+    sources:
+      - "cryptopanic"
+      - "rss_feeds"
+    rss_feeds:
+      - "https://cointelegraph.com/rss"
+      - "https://www.coindesk.com/arc/outboundfeeds/rss/"
+      - "https://decrypt.co/feed"
+    update_interval_minutes: 10
+
+risk_management:
+  max_portfolio_risk_pct: 2.0     # Risque max du portfolio par trade (%)
+  max_position_size_pct: 10.0     # Taille max d'une position (% du portfolio)
+  stop_loss_pct: 3.0              # Stop loss par défaut (%)
+  take_profit_pct: 6.0            # Take profit par défaut (%)
+  trailing_stop_pct: 2.0          # Trailing stop (%)
+  max_daily_loss_pct: 5.0         # Perte max journalière (%)
+  min_risk_reward_ratio: 2.0      # Ratio risque/récompense minimum
+  cooldown_after_loss_minutes: 30 # Pause après une perte
+
+logging:
+  level: "INFO"
+  file: "logs/trading.log"
+  rotation: "10 MB"
+  retention: "30 days"
+
+dashboard:
+  enabled: true
+  host: "127.0.0.1"
+  port: 8050

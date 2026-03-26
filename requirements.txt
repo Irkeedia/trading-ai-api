@@ -1,0 +1,49 @@
+# ============================================================
+# Trading IA - Dépendances Python
+# ============================================================
+
+# --- Exchange & Market Data ---
+ccxt>=4.0.0                    # Connexion universelle aux exchanges crypto
+websockets>=12.0               # WebSocket pour flux temps réel
+
+# --- Data Processing ---
+pandas>=2.1.0                  # Manipulation de données
+numpy>=1.25.0                  # Calculs numériques
+pandas-ta>=0.3.14b1            # Indicateurs d'analyse technique
+
+# --- AI & Machine Learning ---
+google-genai>=1.0.0            # Google Gemini API (nouveau SDK)
+scikit-learn>=1.3.0            # ML classique pour features
+# openai>=1.0.0                # Optionnel: OpenAI API
+
+# --- News & Sentiment ---
+feedparser>=6.0.0              # Parsing de flux RSS
+beautifulsoup4>=4.12.0         # Scraping web
+aiohttp>=3.9.0                 # HTTP async
+newspaper3k>=0.2.8             # Extraction d'articles
+
+# --- Database ---
+asyncpg>=0.29.0                # PostgreSQL async (Neon)
+psycopg2-binary>=2.9.0         # PostgreSQL driver (sync/util)
+
+# --- Scheduling & Async ---
+apscheduler>=3.10.0            # Planification de tâches
+asyncio-throttle>=1.0.0        # Rate limiting
+
+# --- Configuration ---
+python-dotenv>=1.0.0           # Variables d'environnement
+pyyaml>=6.0.0                  # Fichiers de config YAML
+pydantic>=2.5.0                # Validation de données
+pydantic-settings>=2.1.0       # Settings management
+
+# --- Logging & Monitoring ---
+rich>=13.0.0                   # Console riche
+loguru>=0.7.0                  # Logging avancé
+
+# --- API Backend ---
+fastapi>=0.115.0               # API REST
+uvicorn[standard]>=0.30.0      # Serveur ASGI
+
+# --- Testing ---
+pytest>=7.4.0
+pytest-asyncio>=0.23.0
