@@ -115,6 +115,66 @@ class Database:
             await conn.execute("CREATE INDEX IF NOT EXISTS idx_ai_timestamp ON ai_analyses(timestamp DESC)")
             await conn.execute("CREATE INDEX IF NOT EXISTS idx_engine_timestamp ON engine_status(timestamp DESC)")
 
+            # User API keys table
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS user_api_keys (
+                    id SERIAL PRIMARY KEY,
+                    user_email TEXT NOT NULL,
+                    exchange TEXT NOT NULL DEFAULT 'binance',
+                    api_key TEXT NOT NULL,
+                    api_secret TEXT NOT NULL,
+                    is_active BOOLEAN DEFAULT TRUE,
+                    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                    UNIQUE(user_email, exchange)
+                )
+            """)
+
+    # --- User API Keys ---
+
+    async def save_user_api_keys(self, email: str, exchange: str, api_key: str, api_secret: str):
+        """Save or update user exchange API keys."""
+        async with self.pool.acquire() as conn:
+            await conn.execute("""
+                INSERT INTO user_api_keys (user_email, exchange, api_key, api_secret, updated_at)
+                VALUES ($1, $2, $3, $4, NOW())
+                ON CONFLICT (user_email, exchange) 
+                DO UPDATE SET api_key = $3, api_secret = $4, is_active = TRUE, updated_at = NOW()
+            """, email, exchange, api_key, api_secret)
+        logger.info(f"API keys saved for {email} on {exchange}")
+
+    async def get_user_api_keys(self, email: str) -> list[dict]:
+        """Get all active API key configs for a user (secrets masked)."""
+        async with self.pool.acquire() as conn:
+            rows = await conn.fetch("""
+                SELECT exchange, 
+                       CONCAT(LEFT(api_key, 6), '...', RIGHT(api_key, 4)) as api_key_masked,
+                       is_active, updated_at
+                FROM user_api_keys 
+                WHERE user_email = $1 AND is_active = TRUE
+                ORDER BY updated_at DESC
+            """, email)
+            return [dict(r) for r in rows]
+
+    async def get_user_api_keys_full(self, email: str, exchange: str) -> dict | None:
+        """Get full (unmasked) API keys for engine use."""
+        async with self.pool.acquire() as conn:
+            row = await conn.fetchrow("""
+                SELECT api_key, api_secret, exchange
+                FROM user_api_keys 
+                WHERE user_email = $1 AND exchange = $2 AND is_active = TRUE
+            """, email, exchange)
+            return dict(row) if row else None
+
+    async def delete_user_api_keys(self, email: str, exchange: str):
+        """Soft-delete user API keys."""
+        async with self.pool.acquire() as conn:
+            await conn.execute("""
+                UPDATE user_api_keys SET is_active = FALSE, updated_at = NOW()
+                WHERE user_email = $1 AND exchange = $2
+            """, email, exchange)
+        logger.info(f"API keys deleted for {email} on {exchange}")
+
     # --- Trades ---
 
     async def record_trade(self, symbol: str, side: str, price: float,

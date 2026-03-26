@@ -79,6 +79,18 @@ class ConfigUpdate(BaseModel):
     max_daily_loss_pct: Optional[float] = None
 
 
+class ExchangeKeysRequest(BaseModel):
+    email: str
+    exchange: str = "binance"
+    api_key: str
+    api_secret: str
+
+
+class ExchangeKeysDelete(BaseModel):
+    email: str
+    exchange: str = "binance"
+
+
 # ─── Health ─────────────────────────────────────────────────
 
 @app.get("/api/health")
@@ -254,6 +266,75 @@ async def _run_engine(engine):
 
 
 # ─── Config ─────────────────────────────────────────────────
+
+
+# ─── Exchange API Keys ──────────────────────────────────────
+
+@app.post("/api/exchange/keys")
+async def save_exchange_keys(req: ExchangeKeysRequest):
+    """Save user exchange API keys, then validate them by connecting."""
+    if not db:
+        raise HTTPException(503, "Database not ready")
+
+    # Validate by attempting a real connection via CCXT
+    import ccxt
+    exchange_class = getattr(ccxt, req.exchange, None)
+    if not exchange_class:
+        raise HTTPException(400, f"Exchange '{req.exchange}' non supporté")
+
+    try:
+        ex = exchange_class({
+            "apiKey": req.api_key,
+            "secret": req.api_secret,
+            "enableRateLimit": True,
+        })
+        # Fetch balance to verify keys work
+        balance = await asyncio.get_event_loop().run_in_executor(
+            None, ex.fetch_balance
+        )
+        usdt_free = balance.get("USDT", {}).get("free", 0)
+        usdt_total = balance.get("USDT", {}).get("total", 0)
+    except ccxt.AuthenticationError:
+        raise HTTPException(401, "Clés API invalides — vérifiez votre API key et secret")
+    except ccxt.ExchangeError as e:
+        raise HTTPException(400, f"Erreur exchange: {str(e)}")
+    except Exception as e:
+        raise HTTPException(500, f"Erreur de connexion: {str(e)}")
+
+    # Keys valid — save to DB
+    await db.save_user_api_keys(req.email, req.exchange, req.api_key, req.api_secret)
+
+    return {
+        "status": "connected",
+        "exchange": req.exchange,
+        "balance_usdt": {
+            "free": usdt_free,
+            "total": usdt_total,
+        },
+    }
+
+
+@app.get("/api/exchange/keys")
+async def get_exchange_keys(email: str = Query(...)):
+    """Get user's saved exchange connections (secrets masked)."""
+    if not db:
+        raise HTTPException(503, "Database not ready")
+    keys = await db.get_user_api_keys(email)
+    for k in keys:
+        for field, v in k.items():
+            if isinstance(v, datetime):
+                k[field] = v.isoformat()
+    return keys
+
+
+@app.delete("/api/exchange/keys")
+async def delete_exchange_keys(req: ExchangeKeysDelete):
+    """Disconnect an exchange."""
+    if not db:
+        raise HTTPException(503, "Database not ready")
+    await db.delete_user_api_keys(req.email, req.exchange)
+    return {"status": "deleted", "exchange": req.exchange}
+
 
 @app.get("/api/config")
 async def get_config():
