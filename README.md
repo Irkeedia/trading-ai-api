@@ -210,6 +210,46 @@ Tu peux injecter des données avec le script de seed (ex. `seed_demo.py` selon l
 
 ---
 
+## Tests (pytest)
+
+```bash
+cd trading_ia
+source venv/bin/activate
+pip install -r requirements.txt
+pytest
+```
+
+Les variables utilisées par les tests sont définies dans `tests/conftest.py` (base PostgreSQL factice, `API_SECRET_KEY` dédié).
+
+---
+
+## Docker Compose
+
+Fichier `docker-compose.yml` à la racine de `trading_ia` :
+
+- **postgres** + **api** par défaut.
+- Profil **`ui`** : image Next.js si `../dashboard` existe.
+
+```bash
+cd trading_ia
+docker compose up --build
+# API + dashboard (profil ui) :
+docker compose --profile ui up --build
+```
+
+---
+
+## CORS et clé API (routes sensibles)
+
+- **`CORS_ORIGINS`** : liste d’origines séparées par des virgules (ex. `http://localhost:3000,https://app.example.com`).  
+  Ne pas utiliser `*` avec cookies ; ici les origines sont explicites.
+- **`POST /api/engine/control`** et toutes les routes sous **`/api/exchange/keys`** : si `API_SECRET_KEY` est renseigné et **différent** de `change-me-in-production`, le client doit envoyer le header **`X-API-Key`** avec exactement cette valeur.
+- En développement avec la valeur par défaut `change-me-in-production`, la vérification est **désactivée** pour éviter de bloquer les postes sans config.
+
+Le dashboard peut définir **`NEXT_PUBLIC_TRADING_IA_API_KEY`** (voir `../dashboard/.env.local.example`) : **même secret que l’API**, mais la variable est **visible dans le navigateur** — à réserver au dev ou à des déploiements où tu acceptes ce compromis. En production sérieuse, préfère un proxy serveur (Next Route Handler) qui ajoute la clé côté serveur.
+
+---
+
 ## Déploiement
 
 Prêt pour Railway (Dockerfile + `railway.toml` présents).

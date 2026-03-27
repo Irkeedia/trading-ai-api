@@ -1,0 +1,45 @@
+# PostgreSQL + API. Le dashboard en local : npm run dev (voir README dashboard).
+#
+# Avec l’UI dans Docker (clone dashboard à côté de trading_ia) :
+#   API_SECRET_KEY=même-valeur-partout docker compose --profile ui up --build
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: trading
+      POSTGRES_PASSWORD: trading
+      POSTGRES_DB: trading
+    ports:
+      - "5432:5432"
+    volumes:
+      - trading_pg:/var/lib/postgresql/data
+
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      PORT: "8000"
+      DATABASE_URL: postgresql://trading:trading@postgres:5432/trading
+      API_SECRET_KEY: ${API_SECRET_KEY:-change-me-in-production}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+    depends_on:
+      - postgres
+
+  dashboard:
+    profiles: ["ui"]
+    build:
+      context: ../dashboard
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+        NEXT_PUBLIC_TRADING_IA_API_KEY: ${NEXT_PUBLIC_TRADING_IA_API_KEY:-}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+
+volumes:
+  trading_pg:
